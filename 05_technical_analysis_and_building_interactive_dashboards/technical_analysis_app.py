@@ -1,17 +1,20 @@
 # imports
 import yfinance as yf
 import streamlit as st
-import datetime 
+import datetime
 import pandas as pd
 import cufflinks as cf
 from plotly.offline import iplot
 
-## set offline mode for cufflinks
+# set offline mode for cufflinks
 cf.go_offline()
 
 # data functions
-@st.cache
+
+# FIX: Replaced deprecated @st.cache with @st.cache_data for functions that return serializable data
+@st.cache_data
 def get_sp500_components():
+    """Scrapes the list of S&P 500 components from Wikipedia."""
     df = pd.read_html("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
     df = df[0]
     tickers = df["Symbol"].to_list()
@@ -20,17 +23,21 @@ def get_sp500_components():
     )
     return tickers, tickers_companies_dict
 
-@st.cache
+# FIX: Replaced deprecated @st.cache with @st.cache_data
+@st.cache_data
 def load_data(symbol, start, end):
+    """Loads yfinance data."""
     return yf.download(symbol, start, end)
 
-@st.cache
+# FIX: Replaced deprecated @st.cache with @st.cache_data
+@st.cache_data
 def convert_df_to_csv(df):
+    """Converts a DataFrame to a CSV file."""
     return df.to_csv().encode("utf-8")
 
 # sidebar
 
-## inputs for downloading data
+# inputs for downloading data
 st.sidebar.header("Stock Parameters")
 
 available_tickers, tickers_companies_dict = get_sp500_components()
@@ -52,7 +59,7 @@ end_date = st.sidebar.date_input(
 if start_date > end_date:
     st.sidebar.error("The end date must fall after the start date")
 
-## inputs for technical analysis
+# inputs for technical analysis
 st.sidebar.header("Technical Analysis Parameters")
 
 volume_flag = st.sidebar.checkbox(label="Add volume")
@@ -70,11 +77,11 @@ sma_periods= exp_sma.number_input(
 exp_bb = st.sidebar.expander("Bollinger Bands")
 bb_flag = exp_bb.checkbox(label="Add Bollinger Bands")
 bb_periods= exp_bb.number_input(label="BB Periods", 
-                                min_value=1, max_value=50, 
-                                value=20, step=1)
+                                 min_value=1, max_value=50, 
+                                 value=20, step=1)
 bb_std= exp_bb.number_input(label="# of standard deviations", 
-                            min_value=1, max_value=4, 
-                            value=2, step=1)
+                             min_value=1, max_value=4, 
+                             value=2, step=1)
 
 exp_rsi = st.sidebar.expander("Relative Strength Index")
 rsi_flag = exp_rsi.checkbox(label="Add RSI")
@@ -86,13 +93,13 @@ rsi_periods= exp_rsi.number_input(
     step=1
 )
 rsi_upper= exp_rsi.number_input(label="RSI Upper", 
-                                min_value=50, 
-                                max_value=90, value=70, 
-                                step=1)
+                                 min_value=50, 
+                                 max_value=90, value=70, 
+                                 step=1)
 rsi_lower= exp_rsi.number_input(label="RSI Lower", 
-                                min_value=10, 
-                                max_value=50, value=30, 
-                                step=1)
+                                 min_value=10, 
+                                 max_value=50, value=30, 
+                                 step=1)
 
 # main body
 
@@ -109,7 +116,7 @@ Average, Bollinger Bands, Relative Strength Index
 
 df = load_data(ticker, start_date, end_date)
 
-## data preview part
+# data preview part
 data_exp = st.expander("Preview data")
 available_cols = df.columns.tolist()
 columns_to_show = data_exp.multiselect(
@@ -127,7 +134,7 @@ data_exp.download_button(
     mime="text/csv",
 )
 
-## technical analysis plot
+# technical analysis plot
 title_str = f"{tickers_companies_dict[ticker]}'s stock price"
 qf = cf.QuantFig(df, title=title_str)
 if volume_flag:
@@ -136,12 +143,12 @@ if sma_flag:
     qf.add_sma(periods=sma_periods)
 if bb_flag:
     qf.add_bollinger_bands(periods=bb_periods,
-                           boll_std=bb_std)
+                          boll_std=bb_std)
 if rsi_flag:
     qf.add_rsi(periods=rsi_periods,
-               rsi_upper=rsi_upper,
-               rsi_lower=rsi_lower,
-               showbands=True)
+              rsi_upper=rsi_upper,
+              rsi_lower=rsi_lower,
+              showbands=True)
 
 fig = qf.iplot(asFigure=True)
 st.plotly_chart(fig)
